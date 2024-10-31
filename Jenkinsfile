@@ -6,35 +6,35 @@ pipeline {
   }
 
   environment {
-    ARTIFACT_ID = "elbuo8/webapp:${env.BUILD_NUMBER}"
+    ARTIFACT_ID = "cpazl/webapp:${env.BUILD_NUMBER}"
+    DOCKER_REGISTRY = "127.0.0.1:5000"
   }
-   stages {
-   stage('Building image') {
-      steps{
-          sh '''
-          docker build -t testapp .
-             '''  
-        }
+
+  stages {
+    stage('Building image') {
+      steps {
+        // Construye la imagen con el nombre de tu aplicación y el número de build
+        sh '''
+          docker build -t ${ARTIFACT_ID} .
+        '''  
+      }
     }
-  
   
     stage('Run tests') {
       steps {
-        sh "docker run testapp npm test"
+        // Corre los tests dentro del contenedor de la imagen recién construida
+        sh "docker run ${ARTIFACT_ID} npm test"
       }
     }
-   stage('Deploy Image') {
-      steps{
+
+    stage('Deploy Image') {
+      steps {
+        // Etiqueta la imagen con la dirección del registro y la envía al registro local
         sh '''
-        docker tag testapp 127.0.0.1:5000/mguazzardo/testapp
-        docker push 127.0.0.1:5000/mguazzardo/testapp   
+          docker tag ${ARTIFACT_ID} ${DOCKER_REGISTRY}/${ARTIFACT_ID}
+          docker push ${DOCKER_REGISTRY}/${ARTIFACT_ID}
         '''
-        }
       }
     }
+  }
 }
-
-
-    
-  
-
