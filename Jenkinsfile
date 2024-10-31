@@ -3,38 +3,42 @@ pipeline {
 
   options {
     timeout(time: 2, unit: 'MINUTES')
-  }
 
-  environment {
-    ARTIFACT_ID = "cpazl/webapp:${env.BUILD_NUMBER}"
-    DOCKER_REGISTRY = "127.0.0.1:5000"
-  }
+    stages {
+        stage('Checkout') {
+            steps {
+                git credentialsId: 'ff174281-41e5-493a-9951-8591522489be', branch: 'main', url:'https://github.com/CPazL/pin1.git'
+            }
+        }
+        stage('Build') {
+            steps {
+                sh 'echo "Building..."'
+                sh 'npm install'
+                // Agrega otros comandos de compilación
+            }
+        }
+        stage('Test') {
+            steps {
+                sh 'echo "Testing..."'
+                sh 'npm test'
+                // Agrega comandos de prueba
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    docker.build('mi-app:latest')
+                }
+            }
+        }
+    stage('Push to Registry') {
+        steps {
+            withDockerRegistry([ credentialsId: '655d9ba6-2177-4c22-b40f-97f535eeca93', url: 'http://localhost:5000' ]) {
+                sh 'docker tag mi-app:latest localhost:5000/mi-app:latest'
+                sh 'docker push localhost:5000/mi-app:latest'
+            }
+        }
+    }
 
-  stages {
-    stage('Building image') {
-      steps {
-        // Construye la imagen con el nombre de tu aplicación y el número de build
-        sh '''
-          docker build -t ${ARTIFACT_ID} .
-        '''  
-      }
     }
-  
-    stage('Run tests') {
-      steps {
-        // Corre los tests dentro del contenedor de la imagen recién construida
-        sh "docker run ${ARTIFACT_ID} npm test"
-      }
-    }
-
-    stage('Deploy Image') {
-      steps {
-        // Etiqueta la imagen con la dirección del registro y la envía al registro local
-        sh '''
-          docker tag ${ARTIFACT_ID} ${DOCKER_REGISTRY}/${ARTIFACT_ID}
-          docker push ${DOCKER_REGISTRY}/${ARTIFACT_ID}
-        '''
-      }
-    }
-  }
 }
